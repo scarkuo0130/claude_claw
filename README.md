@@ -115,6 +115,30 @@ claude -r <session-id>
 python notify.py "部署完成"
 ```
 
+## Claude Code Stop Hook（自動通知）
+
+讓 Claude Code 完成工作後自動傳送 TG 通知，在 `.claude/settings.local.json` 加入：
+
+```json
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python /你的/claude_claw/路徑/notify.py \"✅ Claude 完成工作\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+設定後每次 Claude Code 停止時，Telegram 就會自動收到通知。
+
 ## 管理指令
 
 ```bash
