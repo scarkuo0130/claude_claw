@@ -281,6 +281,18 @@ def get_latest_session() -> str | None:
     return latest_id
 
 
+def is_session_resumable(session_id: str) -> bool:
+    """確認 session JSONL 是否存在於 ~/.claude/projects（代表 CLI 可 resume）"""
+    claude_projects = os.path.expanduser("~/.claude/projects")
+    if not os.path.isdir(claude_projects):
+        return False
+    for encoded in os.listdir(claude_projects):
+        candidate = os.path.join(claude_projects, encoded, f"{session_id}.jsonl")
+        if os.path.exists(candidate):
+            return True
+    return False
+
+
 def list_recent_sessions(days: int = 30) -> str:
     """列出最近 N 天內有活動的 sessions，依修改時間排序"""
     claude_projects = os.path.expanduser("~/.claude/projects")
@@ -424,10 +436,29 @@ def main():
     load_session_map()
     log.info("scar.develop.claw 啟動")
 
-    # 啟動時自動載入最新 session
-    current_session_id = get_latest_session()
-    if current_session_id:
-        log.info(f"自動載入最新 session: {current_session_id[:8]}")
+    # 啟動時自動載入最新 session，並驗證是否可 resume
+    latest = get_latest_session()
+    if latest:
+        # 若是 IDE session，嘗試換成對應的 CLI session
+        if latest in cli_session_map:
+            cli_id = cli_session_map[latest]
+            log.info(f"IDE session {latest[:8]} → 換用 CLI session {cli_id[:8]}")
+            latest = cli_id
+
+        if is_session_resumable(latest):
+            current_session_id = latest
+            log.info(f"自動載入最新 session: {current_session_id[:8]}")
+            send_tg(
+                f"✅ Bot 已啟動\n"
+                f"📋 Session: `{current_session_id[:8]}`\n"
+                f"VS Code 接手：`claude -r {current_session_id}`"
+            )
+        else:
+            log.info(f"Session {latest[:8]} 無法 resume，啟動新 session")
+            current_session_id = None
+            send_tg("✅ Bot 已啟動\n🆕 無可用 session，下次對話將建立新的")
+    else:
+        send_tg("✅ Bot 已啟動\n🆕 尚無 session，下次對話將建立新的")
 
     # 啟動時跳過所有舊訊息，只處理啟動後的新訊息
     updates = get_updates(0)
