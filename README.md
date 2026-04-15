@@ -127,7 +127,7 @@ python notify.py "部署完成"
         "hooks": [
           {
             "type": "command",
-            "command": "python /你的/claude_claw/路徑/notify.py \"✅ Claude 完成工作\"",
+            "command": "INPUT=$(cat); SESSION_ID=$(echo \"$INPUT\" | jq -r '(.session_id // \"unknown\")[:8]'); python /你的/claude_claw/路徑/notify.py \"✅ Claude 完成工作 [${SESSION_ID}]\"",
             "timeout": 10
           }
         ]
